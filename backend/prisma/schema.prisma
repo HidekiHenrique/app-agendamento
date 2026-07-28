@@ -1,0 +1,52 @@
+// Schema do Prisma - isso substitui os CREATE TABLE que você escreveria
+// direto no MySQL/phpMyAdmin. O Prisma lê esse arquivo e sabe gerar
+// código TypeScript já tipado pra cada tabela.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // O Supabase te dá duas connection strings: uma "direct" (porta 5432)
+  // e uma "pooled" via pgbouncer (porta 6543). Pra ORMs como o Prisma,
+  // o Supabase recomenda usar a pooled aqui e a direct só pra migrations.
+  directUrl = env("DIRECT_URL")
+}
+
+model Cliente {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  telefone     String?
+  observacoes  String?
+  criadoEm     DateTime      @default(now())
+  agendamentos Agendamento[]
+}
+
+model Servico {
+  id           Int           @id @default(autoincrement())
+  nome         String        // ex: "Depilação perna completa", "Massagem relaxante"
+  duracaoMin   Int           // duração em minutos, usada pra calcular horaFim automaticamente
+  preco        Float
+  ativo        Boolean       @default(true)
+  agendamentos Agendamento[]
+}
+
+enum StatusAgendamento {
+  agendado
+  concluido
+  cancelado
+}
+
+model Agendamento {
+  id          Int               @id @default(autoincrement())
+  cliente     Cliente           @relation(fields: [clienteId], references: [id])
+  clienteId   Int
+  servico     Servico           @relation(fields: [servicoId], references: [id])
+  servicoId   Int
+  dataHora    DateTime          // início do atendimento
+  status      StatusAgendamento @default(agendado)
+  observacoes String?
+  criadoEm    DateTime          @default(now())
+}
