@@ -20,6 +20,8 @@ export interface Agendamento {
   clienteId: number;
   servicoId: number;
   dataHora: string; // ISO string em UTC, como vem do backend
+  precoCobrado: number; // preço no momento em que foi agendado (não muda se o serviço mudar de preço depois)
+  duracaoMin: number; // duração no momento em que foi agendado
   status: StatusAgendamento;
   observacoes: string | null;
   cliente: Cliente;

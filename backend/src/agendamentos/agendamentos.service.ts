@@ -4,9 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CriarAgendamentoDto } from './dto/criar-agendamento.dto';
 import { AtualizarStatusDto } from './dto/atualizar-status.dto';
 
-type AgendamentoComServico = Prisma.AgendamentoGetPayload<{
-  include: { servico: true };
-}>;
+type Agendamento = Prisma.AgendamentoGetPayload<{}>;
 
 @Injectable()
 export class AgendamentosService {
@@ -46,6 +44,11 @@ export class AgendamentosService {
         servicoId: dados.servicoId,
         dataHora: inicio,
         observacoes: dados.observacoes,
+        // Snapshot: copia o preço/duração ATUAIS do serviço pro agendamento.
+        // Se o serviço mudar de preço depois, esse agendamento mantém o
+        // valor que foi combinado no momento em que foi marcado.
+        precoCobrado: servico.preco,
+        duracaoMin: servico.duracaoMin,
       },
       include: { cliente: true, servico: true },
     });
@@ -68,12 +71,13 @@ export class AgendamentosService {
    * Checa se já existe algum agendamento (não cancelado) que se sobrepõe
    * ao intervalo [inicio, fim). Isso evita sua mãe marcar dois clientes
    * no mesmo horário sem perceber.
+   *
+   * Importante: usamos o `duracaoMin` SALVO em cada agendamento (o
+   * snapshot), não o duracaoMin atual do Servico - assim, se você editar
+   * a duração de um serviço hoje, isso não altera silenciosamente o
+   * cálculo de conflito de agendamentos já marcados no passado.
    */
   private async garantirSemConflito(inicio: Date, fim: Date) {
-    // Como só guardamos o horário de início (não o fim), pegamos os
-    // agendamentos próximos e comparamos o intervalo em JS - mais simples
-    // de ler do que montar uma query SQL de overlap pra esse volume baixo
-    // de agendamentos por dia.
     const todasDoDia = await this.prisma.agendamento.findMany({
       where: {
         status: { not: 'cancelado' },
@@ -82,12 +86,11 @@ export class AgendamentosService {
           lte: fim,
         },
       },
-      include: { servico: true },
     });
 
-    const sobrepoe = todasDoDia.some((ag: AgendamentoComServico) => {
+    const sobrepoe = todasDoDia.some((ag: Agendamento) => {
       const agInicio = ag.dataHora;
-      const agFim = new Date(agInicio.getTime() + ag.servico.duracaoMin * 60_000);
+      const agFim = new Date(agInicio.getTime() + ag.duracaoMin * 60_000);
       return inicio < agFim && fim > agInicio;
     });
 

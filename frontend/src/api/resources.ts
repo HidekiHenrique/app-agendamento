@@ -17,6 +17,8 @@ export const servicosApi = {
   listar: () => api.get<Servico[]>('/servicos'),
   criar: (dados: { nome: string; duracaoMin: number; preco: number }) =>
     api.post<Servico>('/servicos', dados),
+  atualizar: (id: number, dados: Partial<{ nome: string; duracaoMin: number; preco: number }>) =>
+    api.patch<Servico>(`/servicos/${id}`, dados),
 };
 
 export const agendamentosApi = {

@@ -91,8 +91,8 @@ export function AgendaPage() {
             <div>
               <strong>{formatarHora(ag.dataHora)}</strong> — {ag.cliente.nome}
               <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                {ag.servico.nome} ({ag.servico.duracaoMin}min) · R$
-                {ag.servico.preco.toFixed(2)}
+                {ag.servico.nome} ({ag.duracaoMin}min) · R$
+                {ag.precoCobrado.toFixed(2)}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>

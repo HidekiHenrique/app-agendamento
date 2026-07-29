@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CriarServicoDto } from './dto/criar-servico.dto';
+import { AtualizarServicoDto } from './dto/atualizar-servico.dto';
 
 @Injectable()
 export class ServicosService {
@@ -16,6 +17,22 @@ export class ServicosService {
 
   criar(dados: CriarServicoDto) {
     return this.prisma.servico.create({ data: dados });
+  }
+
+  async atualizar(id: number, dados: AtualizarServicoDto) {
+    const servico = await this.prisma.servico.findUnique({ where: { id } });
+    if (!servico) {
+      throw new NotFoundException(`Serviço ${id} não encontrado.`);
+    }
+
+    // Importante: isso NÃO altera agendamentos já criados, porque eles
+    // guardam seu próprio snapshot de preço/duração (precoCobrado,
+    // duracaoMin no Agendamento). Só afeta agendamentos criados DAQUI PRA
+    // FRENTE.
+    return this.prisma.servico.update({
+      where: { id },
+      data: dados,
+    });
   }
 
   async desativar(id: number) {

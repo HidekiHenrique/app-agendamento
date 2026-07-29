@@ -40,13 +40,19 @@ enum StatusAgendamento {
 }
 
 model Agendamento {
-  id          Int               @id @default(autoincrement())
-  cliente     Cliente           @relation(fields: [clienteId], references: [id])
-  clienteId   Int
-  servico     Servico           @relation(fields: [servicoId], references: [id])
-  servicoId   Int
-  dataHora    DateTime          // início do atendimento
-  status      StatusAgendamento @default(agendado)
-  observacoes String?
-  criadoEm    DateTime          @default(now())
+  id             Int               @id @default(autoincrement())
+  cliente        Cliente           @relation(fields: [clienteId], references: [id])
+  clienteId      Int
+  servico        Servico           @relation(fields: [servicoId], references: [id])
+  servicoId      Int
+  dataHora       DateTime          // início do atendimento
+  // "Snapshot" do preço e duração no momento da criação. Guardamos aqui
+  // (em vez de só olhar pra Servico) porque o preço do serviço pode mudar
+  // depois - um agendamento já concluído/pago não pode "mudar de valor"
+  // retroativamente só porque o preço da tabela Servico foi atualizado.
+  precoCobrado   Float
+  duracaoMin     Int
+  status         StatusAgendamento @default(agendado)
+  observacoes    String?
+  criadoEm       DateTime          @default(now())
 }

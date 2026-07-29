@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ServicosService } from './servicos.service';
 import { CriarServicoDto } from './dto/criar-servico.dto';
+import { AtualizarServicoDto } from './dto/atualizar-servico.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('servicos')
@@ -16,6 +17,11 @@ export class ServicosController {
   @Post()
   criar(@Body() dados: CriarServicoDto) {
     return this.servicosService.criar(dados);
+  }
+
+  @Patch(':id')
+  atualizar(@Param('id', ParseIntPipe) id: number, @Body() dados: AtualizarServicoDto) {
+    return this.servicosService.atualizar(id, dados);
   }
 
   @Delete(':id')
