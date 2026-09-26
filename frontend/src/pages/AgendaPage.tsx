@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { agendamentosApi, bloqueiosApi, clientesApi, servicosApi } from '../api/resources';
 import type { Agendamento, BloqueioAgenda, Cliente, Servico } from '../api/types';
 
@@ -14,8 +13,15 @@ function formatarHora(dataHoraUTC: string) {
   });
 }
 
+function formatarDataExtenso(dataISO: string) {
+  return new Date(`${dataISO}T12:00:00`).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  });
+}
+
 export function AgendaPage() {
-  const { logout } = useAuth();
   const [data, setData] = useState(hojeISO());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [bloqueios, setBloqueios] = useState<BloqueioAgenda[]>([]);
@@ -24,6 +30,7 @@ export function AgendaPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [exibirFormBloqueio, setExibirFormBloqueio] = useState(false);
+  const [exibirFormNovoAgendamento, setExibirFormNovoAgendamento] = useState(false);
 
   useEffect(() => {
     servicosApi.listar().then(setServicos).catch(() => {});
@@ -45,7 +52,7 @@ export function AgendaPage() {
       setAgendamentos(listaAg);
       setBloqueios(listaBl);
     } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Erro ao carregar agenda.');
+      setErro(err instanceof Error ? err.message : 'Erro ao carregar agenda do dia.');
     } finally {
       setCarregando(false);
     }
@@ -56,12 +63,12 @@ export function AgendaPage() {
       await agendamentosApi.atualizarStatus(id, 'concluido');
       carregarAgenda();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao concluir agendamento.');
+      alert(err instanceof Error ? err.message : 'Erro ao concluir atendimento.');
     }
   }
 
   async function cancelar(id: number) {
-    if (!confirm('Deseja cancelar este agendamento?')) return;
+    if (!confirm('Deseja realmente cancelar este agendamento?')) return;
     try {
       await agendamentosApi.atualizarStatus(id, 'cancelado');
       carregarAgenda();
@@ -71,7 +78,7 @@ export function AgendaPage() {
   }
 
   async function removerBloqueio(id: number) {
-    if (!confirm('Deseja desbloquear este horário?')) return;
+    if (!confirm('Deseja remover este bloqueio de horário?')) return;
     try {
       await bloqueiosApi.remover(id);
       carregarAgenda();
@@ -81,31 +88,58 @@ export function AgendaPage() {
   }
 
   return (
-    <div style={estilos.pagina}>
-      <header style={estilos.header}>
-        <h1 style={estilos.titulo}>Agenda Geral</h1>
-        <button onClick={logout} style={estilos.botaoSair}>
-          Sair
-        </button>
-      </header>
+    <div>
+      <div style={estilos.topHeader}>
+        <div>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 500, margin: 0 }}>Agenda Diária</h2>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '0.2rem 0 0', textTransform: 'capitalize' }}>
+            {formatarDataExtenso(data)}
+          </p>
+        </div>
 
-      <div style={estilos.topoControles}>
-        <div style={estilos.seletorData}>
+        <div style={estilos.actionButtons}>
+          <button
+            onClick={() => setExibirFormNovoAgendamento((v) => !v)}
+            className="btn btn-primary"
+            style={{ fontSize: '0.85rem', padding: '0.5rem 0.9rem' }}
+          >
+            {exibirFormNovoAgendamento ? 'Fechar Formulário' : '+ Agendar Atendimento'}
+          </button>
+          <button
+            onClick={() => setExibirFormBloqueio((v) => !v)}
+            className="btn btn-outline"
+            style={{ fontSize: '0.85rem', padding: '0.5rem 0.9rem' }}
+          >
+            {exibirFormBloqueio ? 'Fechar Bloqueio' : '🔒 Bloquear Horário'}
+          </button>
+        </div>
+      </div>
+
+      <div style={estilos.dateControlBar}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+            Selecionar Data:
+          </span>
           <input
             type="date"
             value={data}
             onChange={(e) => setData(e.target.value)}
-            style={estilos.inputData}
+            className="input-field"
+            style={{ width: 'auto', padding: '0.45rem 0.75rem', fontWeight: 500 }}
           />
         </div>
         <button
-          onClick={() => setExibirFormBloqueio((v) => !v)}
-          style={estilos.botaoToggleBloqueio}
+          onClick={() => setData(hojeISO())}
+          className="btn btn-secondary"
+          style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem' }}
         >
-          {exibirFormBloqueio ? 'Fechar Bloqueio' : '🔒 Bloquear Horário'}
+          Hoje
         </button>
       </div>
 
+      {erro && <div className="alert-error">{erro}</div>}
+
+      {/* Formulário de Novo Bloqueio */}
       {exibirFormBloqueio && (
         <NovoBloqueioForm
           data={data}
@@ -113,32 +147,48 @@ export function AgendaPage() {
             setExibirFormBloqueio(false);
             carregarAgenda();
           }}
+          onCancelar={() => setExibirFormBloqueio(false)}
         />
       )}
 
-      <NovoAgendamentoForm
-        data={data}
-        clientes={clientes}
-        servicos={servicos}
-        onCriado={carregarAgenda}
-      />
+      {/* Formulário de Novo Agendamento pela Master */}
+      {exibirFormNovoAgendamento && (
+        <NovoAgendamentoForm
+          data={data}
+          clientes={clientes}
+          servicos={servicos}
+          onCriado={() => {
+            setExibirFormNovoAgendamento(false);
+            carregarAgenda();
+          }}
+          onCancelar={() => setExibirFormNovoAgendamento(false)}
+        />
+      )}
 
-      {erro && <p style={{ color: '#c0392b' }}>{erro}</p>}
-      {carregando && <p style={{ color: '#777' }}>Carregando dia...</p>}
+      {carregando && (
+        <div style={estilos.loadingBox}>
+          <span className="spinner" />
+          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Carregando atendimentos...</span>
+        </div>
+      )}
 
       {/* Bloqueios do Dia */}
       {bloqueios.length > 0 && (
-        <div style={estilos.secaoBloqueios}>
-          <strong style={{ fontSize: '0.9rem', color: '#8c4b28' }}>Bloqueios de Horário no Dia:</strong>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.4rem' }}>
+        <div style={estilos.bloqueiosSection}>
+          <div style={estilos.bloqueioHeader}>
+            <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-primary)' }}>
+              🔒 Horários Bloqueados no Dia
+            </span>
+          </div>
+          <div style={estilos.bloqueiosList}>
             {bloqueios.map((b) => (
-              <div key={b.id} style={estilos.itemBloqueio}>
-                <span>
-                  🔒 <strong>{formatarHora(b.inicio)} às {formatarHora(b.fim)}</strong>
-                  {b.motivo ? ` — ${b.motivo}` : ''}
-                </span>
-                <button onClick={() => removerBloqueio(b.id)} style={estilos.botaoRemoverBloqueio}>
-                  Remover
+              <div key={b.id} style={estilos.bloqueioItem}>
+                <div>
+                  <strong>{formatarHora(b.inicio)} às {formatarHora(b.fim)}</strong>
+                  {b.motivo && <span style={{ color: 'var(--color-text-muted)' }}> — {b.motivo}</span>}
+                </div>
+                <button onClick={() => removerBloqueio(b.id)} style={estilos.linkRemoverBloqueio}>
+                  Desbloquear
                 </button>
               </div>
             ))}
@@ -146,49 +196,83 @@ export function AgendaPage() {
         </div>
       )}
 
-      {/* Agendamentos */}
-      <ul style={estilos.lista}>
-        {agendamentos.length === 0 && !carregando && (
-          <p style={{ color: '#888' }}>Nenhum atendimento agendado nesse dia.</p>
+      {/* Lista de Atendimentos */}
+      <div style={estilos.agendaList}>
+        {!carregando && agendamentos.length === 0 && (
+          <div style={estilos.emptyBox}>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+              Nenhum agendamento marcado para esta data.
+            </p>
+          </div>
         )}
-        {agendamentos.map((ag) => (
-          <li key={ag.id} style={estilos.item(ag.status)}>
-            <div>
-              <strong>{formatarHora(ag.dataHora)}</strong> — {ag.cliente?.nome || 'Cliente'}
-              <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                {ag.servico.nome} ({ag.duracaoMin}min) · R$ {ag.precoCobrado.toFixed(2)}
-              </div>
-              {ag.observacoes && (
-                <div style={{ fontSize: '0.8rem', color: '#777', fontStyle: 'italic' }}>
-                  Obs: {ag.observacoes}
+
+        {agendamentos.map((ag) => {
+          const isCancelado = ag.status === 'cancelado';
+          const isConcluido = ag.status === 'concluido';
+
+          return (
+            <div key={ag.id} className="card" style={{ ...estilos.agendamentoCard, opacity: isCancelado ? 0.65 : 1 }}>
+              <div style={estilos.cardContent}>
+                <div style={estilos.timeColumn}>
+                  <span style={estilos.horaDestaque}>{formatarHora(ag.dataHora)}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    {ag.duracaoMin} min
+                  </span>
                 </div>
-              )}
+
+                <div style={estilos.infoColumn}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <h4 style={estilos.clienteNome}>{ag.cliente?.nome || 'Cliente'}</h4>
+                    {ag.cliente?.telefone && (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                        ({ag.cliente.telefone})
+                      </span>
+                    )}
+                  </div>
+                  <div style={estilos.procedimentoInfo}>
+                    <span style={{ color: 'var(--color-primary)', fontWeight: 500 }}>{ag.servico.nome}</span>
+                    <span style={{ color: 'var(--color-text-muted)' }}> · R$ {ag.precoCobrado.toFixed(2)}</span>
+                  </div>
+                  {ag.observacoes && (
+                    <p style={estilos.obsTexto}>Obs: {ag.observacoes}</p>
+                  )}
+                </div>
+
+                <div style={estilos.acoesColumn}>
+                  {ag.status === 'agendado' && (
+                    <>
+                      <button onClick={() => marcarConcluido(ag.id)} className="btn btn-primary" style={estilos.btnConcluir}>
+                        ✓ Concluir
+                      </button>
+                      <button onClick={() => cancelar(ag.id)} className="btn btn-danger-outline" style={estilos.btnCancelarAcao}>
+                        Cancelar
+                      </button>
+                    </>
+                  )}
+                  {ag.status !== 'agendado' && (
+                    <span className={isConcluido ? 'badge badge-concluido' : 'badge badge-cancelado'}>
+                      {isConcluido ? 'Concluído' : 'Cancelado'}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {ag.status === 'agendado' && (
-                <>
-                  <button onClick={() => marcarConcluido(ag.id)} style={estilos.botaoAcao}>
-                    ✓ Concluir
-                  </button>
-                  <button onClick={() => cancelar(ag.id)} style={estilos.botaoAcaoCancelar}>
-                    ✕ Cancelar
-                  </button>
-                </>
-              )}
-              {ag.status !== 'agendado' && (
-                <span style={estilos.badge(ag.status)}>
-                  {ag.status === 'concluido' ? 'Concluído' : 'Cancelado'}
-                </span>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function NovoBloqueioForm({ data, onCriado }: { data: string; onCriado: () => void }) {
+function NovoBloqueioForm({
+  data,
+  onCriado,
+  onCancelar,
+}: {
+  data: string;
+  onCriado: () => void;
+  onCancelar: () => void;
+}) {
   const [inicioHora, setInicioHora] = useState('12:00');
   const [fimHora, setFimHora] = useState('13:00');
   const [motivo, setMotivo] = useState('');
@@ -200,7 +284,7 @@ function NovoBloqueioForm({ data, onCriado }: { data: string; onCriado: () => vo
     setErro('');
 
     if (fimHora <= inicioHora) {
-      setErro('O horário final deve ser após o horário inicial.');
+      setErro('O horário final deve ser posterior ao horário inicial.');
       return;
     }
 
@@ -220,41 +304,55 @@ function NovoBloqueioForm({ data, onCriado }: { data: string; onCriado: () => vo
   }
 
   return (
-    <form onSubmit={handleSubmit} style={estilos.formBloqueio}>
-      <div style={{ width: '100%', fontWeight: 'bold', fontSize: '0.9rem', color: '#8c4b28' }}>
-        Definir Indisponibilidade / Bloqueio
+    <form onSubmit={handleSubmit} className="card" style={estilos.boxFormulario}>
+      <div style={estilos.boxHeader}>
+        <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-primary)' }}>
+          Bloquear Horário / Indisponibilidade
+        </h4>
+        <button type="button" onClick={onCancelar} style={estilos.btnFechar}>✕</button>
       </div>
-      <label style={{ fontSize: '0.85rem' }}>
-        Das:
-        <input
-          type="time"
-          value={inicioHora}
-          onChange={(e) => setInicioHora(e.target.value)}
-          required
-          style={{ marginLeft: '0.3rem', padding: '0.3rem' }}
-        />
-      </label>
-      <label style={{ fontSize: '0.85rem' }}>
-        Até:
-        <input
-          type="time"
-          value={fimHora}
-          onChange={(e) => setFimHora(e.target.value)}
-          required
-          style={{ marginLeft: '0.3rem', padding: '0.3rem' }}
-        />
-      </label>
-      <input
-        type="text"
-        placeholder="Motivo (ex: Almoço, Folga, Médico)"
-        value={motivo}
-        onChange={(e) => setMotivo(e.target.value)}
-        style={{ flex: 1, minWidth: '150px', padding: '0.4rem' }}
-      />
-      <button type="submit" disabled={salvando} style={estilos.botaoSalvarBloqueio}>
-        {salvando ? 'Salvando...' : 'Salvar Bloqueio'}
-      </button>
-      {erro && <p style={{ color: '#c0392b', fontSize: '0.85rem', width: '100%', margin: 0 }}>{erro}</p>}
+
+      <div style={estilos.formLinha}>
+        <div className="input-group" style={{ flex: '1 1 120px', margin: 0 }}>
+          <label className="input-label">Início</label>
+          <input
+            type="time"
+            value={inicioHora}
+            onChange={(e) => setInicioHora(e.target.value)}
+            required
+            className="input-field"
+          />
+        </div>
+        <div className="input-group" style={{ flex: '1 1 120px', margin: 0 }}>
+          <label className="input-label">Término</label>
+          <input
+            type="time"
+            value={fimHora}
+            onChange={(e) => setFimHora(e.target.value)}
+            required
+            className="input-field"
+          />
+        </div>
+        <div className="input-group" style={{ flex: '2 1 200px', margin: 0 }}>
+          <label className="input-label">Motivo (opcional)</label>
+          <input
+            type="text"
+            placeholder="Ex: Almoço, Intervalo, Consulta"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            className="input-field"
+          />
+        </div>
+      </div>
+
+      {erro && <div className="alert-error" style={{ margin: '0.75rem 0 0' }}>{erro}</div>}
+
+      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <button type="button" onClick={onCancelar} className="btn btn-secondary">Cancelar</button>
+        <button type="submit" disabled={salvando} className="btn btn-primary">
+          {salvando ? 'Salvando...' : 'Salvar Bloqueio'}
+        </button>
+      </div>
     </form>
   );
 }
@@ -264,11 +362,13 @@ function NovoAgendamentoForm({
   clientes,
   servicos,
   onCriado,
+  onCancelar,
 }: {
   data: string;
   clientes: Cliente[];
   servicos: Servico[];
   onCriado: () => void;
+  onCancelar: () => void;
 }) {
   const [clienteId, setClienteId] = useState('');
   const [servicoId, setServicoId] = useState('');
@@ -286,196 +386,239 @@ function NovoAgendamentoForm({
         servicoId: Number(servicoId),
         dataHora: `${data}T${hora}:00`,
       });
-      setClienteId('');
-      setServicoId('');
       onCriado();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Erro ao criar agendamento.');
+      setErro(err instanceof Error ? err.message : 'Erro ao agendar horário.');
     } finally {
       setSalvando(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} style={estilos.formNovo}>
-      <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required style={estilos.select}>
-        <option value="">Selecione o Cliente...</option>
-        {clientes.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.nome} {c.telefone ? `(${c.telefone})` : ''}
-          </option>
-        ))}
-      </select>
+    <form onSubmit={handleSubmit} className="card" style={estilos.boxFormulario}>
+      <div style={estilos.boxHeader}>
+        <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-primary)' }}>
+          Agendar Atendimento Manualmente
+        </h4>
+        <button type="button" onClick={onCancelar} style={estilos.btnFechar}>✕</button>
+      </div>
 
-      <select value={servicoId} onChange={(e) => setServicoId(e.target.value)} required style={estilos.select}>
-        <option value="">Selecione o Serviço...</option>
-        {servicos.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.nome} ({s.duracaoMin}min - R$ {s.preco.toFixed(2)})
-          </option>
-        ))}
-      </select>
+      <div style={estilos.formLinha}>
+        <div className="input-group" style={{ flex: '2 1 200px', margin: 0 }}>
+          <label className="input-label">Cliente</label>
+          <select
+            value={clienteId}
+            onChange={(e) => setClienteId(e.target.value)}
+            required
+            className="input-field"
+          >
+            <option value="">Selecione a cliente...</option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome} {c.telefone ? `(${c.telefone})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} required style={estilos.inputHora} />
+        <div className="input-group" style={{ flex: '2 1 200px', margin: 0 }}>
+          <label className="input-label">Procedimento</label>
+          <select
+            value={servicoId}
+            onChange={(e) => setServicoId(e.target.value)}
+            required
+            className="input-field"
+          >
+            <option value="">Selecione o procedimento...</option>
+            {servicos.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nome} ({s.duracaoMin}min - R$ {s.preco.toFixed(2)})
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <button type="submit" disabled={salvando} style={estilos.botaoAdicionar}>
-        {salvando ? 'Salvando...' : '+ Agendar'}
-      </button>
+        <div className="input-group" style={{ flex: '1 1 120px', margin: 0 }}>
+          <label className="input-label">Horário</label>
+          <input
+            type="time"
+            value={hora}
+            onChange={(e) => setHora(e.target.value)}
+            required
+            className="input-field"
+          />
+        </div>
+      </div>
 
-      {erro && <p style={{ color: '#c0392b', fontSize: '0.85rem', width: '100%', margin: '0.3rem 0 0' }}>{erro}</p>}
+      {erro && <div className="alert-error" style={{ margin: '0.75rem 0 0' }}>{erro}</div>}
+
+      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <button type="button" onClick={onCancelar} className="btn btn-secondary">Cancelar</button>
+        <button type="submit" disabled={salvando} className="btn btn-primary">
+          {salvando ? 'Salvando...' : 'Confirmar Agendamento'}
+        </button>
+      </div>
     </form>
   );
 }
 
 const estilos = {
-  pagina: {
-    maxWidth: '650px',
-    margin: '0 auto',
-    padding: '1.5rem',
-    fontFamily: 'system-ui, sans-serif',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1rem',
-  },
-  titulo: { margin: 0, color: '#333' },
-  botaoSair: {
-    background: 'none',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    padding: '0.4rem 0.8rem',
-    cursor: 'pointer',
-    color: '#666',
-  },
-  topoControles: {
+  topHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '1rem',
     flexWrap: 'wrap' as const,
-    gap: '0.5rem',
+    gap: '0.75rem',
   },
-  seletorData: { margin: 0 },
-  inputData: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd', fontSize: '1rem' },
-  botaoToggleBloqueio: {
-    background: '#fff',
-    border: '1px solid #c99377',
-    color: '#8c4b28',
-    borderRadius: '6px',
-    padding: '0.45rem 0.8rem',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: 'bold' as const,
-  },
-  formBloqueio: {
+  actionButtons: {
     display: 'flex',
     gap: '0.5rem',
     flexWrap: 'wrap' as const,
+  },
+  dateControlBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    background: '#fbf3ed',
-    padding: '0.9rem',
-    borderRadius: '8px',
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '0.6rem 0.9rem',
+    marginBottom: '1.25rem',
+    flexWrap: 'wrap' as const,
+    gap: '0.5rem',
+  },
+  boxFormulario: {
+    marginBottom: '1.5rem',
+    background: '#FFFFFF',
+    border: '1.5px solid var(--color-primary-border)',
+  },
+  boxHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '1rem',
-    border: '1px solid #f2ded1',
   },
-  botaoSalvarBloqueio: {
-    background: '#a05c36',
-    color: '#fff',
+  btnFechar: {
+    background: 'none',
     border: 'none',
-    borderRadius: '6px',
-    padding: '0.45rem 0.8rem',
+    color: 'var(--color-text-muted)',
     cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: 'bold' as const,
+    fontSize: '0.9rem',
   },
-  secaoBloqueios: {
-    background: '#fcf6f2',
-    border: '1px dashed #d9b8a3',
-    padding: '0.8rem',
-    borderRadius: '8px',
-    marginBottom: '1.2rem',
+  formLinha: {
+    display: 'flex',
+    gap: '0.75rem',
+    flexWrap: 'wrap' as const,
   },
-  itemBloqueio: {
+  bloqueiosSection: {
+    background: 'var(--color-primary-subtle)',
+    border: '1px solid var(--color-primary-border)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '0.85rem 1rem',
+    marginBottom: '1.25rem',
+  },
+  bloqueioHeader: {
+    marginBottom: '0.5rem',
+  },
+  bloqueiosList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.4rem',
+  },
+  bloqueioItem: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     fontSize: '0.85rem',
-    color: '#5c331c',
+    color: 'var(--color-primary-dark)',
   },
-  botaoRemoverBloqueio: {
+  linkRemoverBloqueio: {
     background: 'none',
     border: 'none',
-    color: '#c0392b',
+    color: 'var(--color-primary)',
     cursor: 'pointer',
     fontSize: '0.8rem',
+    fontWeight: 600,
     textDecoration: 'underline',
   },
-  formNovo: {
+  agendaList: {
     display: 'flex',
-    gap: '0.5rem',
-    flexWrap: 'wrap' as const,
-    background: '#f5f3f0',
-    padding: '1rem',
-    borderRadius: '8px',
-    marginBottom: '1.5rem',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
   },
-  select: {
-    padding: '0.5rem',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
-    flex: '1 1 180px',
+  agendamentoCard: {
+    padding: '1rem 1.25rem',
   },
-  inputHora: {
-    padding: '0.5rem',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
-  },
-  botaoAdicionar: {
-    background: '#8a6d5c',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    fontWeight: 'bold' as const,
-  },
-  lista: { listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column' as const, gap: '0.6rem' },
-  item: (status: string) => ({
+  cardContent: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '0.8rem 1rem',
-    borderRadius: '8px',
-    border: '1px solid #eee',
-    background: status === 'cancelado' ? '#fdf0f0' : status === 'concluido' ? '#f0f7f0' : '#fff',
-    opacity: status === 'cancelado' ? 0.65 : 1,
-  }),
-  botaoAcao: {
-    background: '#2e7d32',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '0.35rem 0.6rem',
-    cursor: 'pointer',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    flexWrap: 'wrap' as const,
+  },
+  timeColumn: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '65px',
+    padding: '0.4rem 0.6rem',
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
+  },
+  horaDestaque: {
+    fontSize: '1.05rem',
+    fontWeight: 600,
+    color: 'var(--color-primary)',
+  },
+  infoColumn: {
+    flex: '1 1 200px',
+  },
+  clienteNome: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: 'var(--color-text-main)',
+    margin: 0,
+  },
+  procedimentoInfo: {
+    fontSize: '0.85rem',
+    marginTop: '0.2rem',
+  },
+  obsTexto: {
+    fontSize: '0.8rem',
+    color: 'var(--color-text-muted)',
+    fontStyle: 'italic' as const,
+    margin: '0.3rem 0 0',
+  },
+  acoesColumn: {
+    display: 'flex',
+    gap: '0.4rem',
+    alignItems: 'center',
+  },
+  btnConcluir: {
+    padding: '0.4rem 0.8rem',
+    fontSize: '0.8rem',
+    backgroundColor: '#166534',
+    borderColor: '#166534',
+  },
+  btnCancelarAcao: {
+    padding: '0.4rem 0.8rem',
     fontSize: '0.8rem',
   },
-  botaoAcaoCancelar: {
-    background: '#c0392b',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '0.35rem 0.6rem',
-    cursor: 'pointer',
-    fontSize: '0.8rem',
+  loadingBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    padding: '1.5rem',
+    justifyContent: 'center',
   },
-  badge: (status: string) => ({
-    fontSize: '0.8rem',
-    padding: '0.2rem 0.5rem',
-    borderRadius: '10px',
-    background: status === 'concluido' ? '#e8f5e9' : '#ffebee',
-    color: status === 'concluido' ? '#2e7d32' : '#c62828',
-    fontWeight: 'bold' as const,
-  }),
+  emptyBox: {
+    padding: '3rem 1.5rem',
+    textAlign: 'center' as const,
+    background: 'var(--color-surface)',
+    border: '1px dashed var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+  },
 };

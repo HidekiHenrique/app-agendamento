@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { BrandHeader } from '../components/BrandHeader';
 
 export function CadastroClientePage({ onIrParaLogin }: { onIrParaLogin: () => void }) {
   const { cadastrarCliente } = useAuth();
@@ -22,7 +23,7 @@ export function CadastroClientePage({ onIrParaLogin }: { onIrParaLogin: () => vo
     }
 
     if (senha !== confirmarSenha) {
-      setErro('As senhas não coincidem.');
+      setErro('As senhas digitadas não coincidem.');
       return;
     }
 
@@ -42,132 +43,135 @@ export function CadastroClientePage({ onIrParaLogin }: { onIrParaLogin: () => vo
   }
 
   return (
-    <div style={estilos.container}>
-      <form onSubmit={handleSubmit} style={estilos.card}>
-        <h1 style={estilos.titulo}>Criar Conta</h1>
-        <p style={estilos.subtitulo}>Cadastre-se para agendar seus horários online</p>
+    <div style={estilos.pageWrapper}>
+      <div style={estilos.card}>
+        <BrandHeader subtitle="Cadastro de Cliente" />
 
-        <label style={estilos.label}>
-          Nome completo
-          <input
-            type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            required
-            placeholder="Seu nome"
-            style={estilos.input}
-          />
-        </label>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label className="input-label">Nome Completo</label>
+            <input
+              type="text"
+              className="input-field"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+              placeholder="Ex: Maria Oliveira"
+            />
+          </div>
 
-        <label style={estilos.label}>
-          WhatsApp / Telefone
-          <input
-            type="tel"
-            value={telefone}
-            onChange={(e) => setTelefone(e.target.value)}
-            placeholder="(11) 99999-9999"
-            style={estilos.input}
-          />
-        </label>
+          <div className="input-group">
+            <label className="input-label">WhatsApp / Telefone</label>
+            <input
+              type="tel"
+              className="input-field"
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="(11) 99999-9999"
+            />
+          </div>
 
-        <label style={estilos.label}>
-          E-mail
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="seu@email.com"
-            style={estilos.input}
-          />
-        </label>
+          <div className="input-group">
+            <label className="input-label">E-mail</label>
+            <input
+              type="email"
+              className="input-field"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="seu@email.com"
+            />
+          </div>
 
-        <label style={estilos.label}>
-          Senha
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            placeholder="Mínimo 6 caracteres"
-            style={estilos.input}
-          />
-        </label>
+          <div className="input-group">
+            <label className="input-label">Senha</label>
+            <input
+              type="password"
+              className="input-field"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              placeholder="Mínimo 6 caracteres"
+            />
+          </div>
 
-        <label style={estilos.label}>
-          Confirmar Senha
-          <input
-            type="password"
-            value={confirmarSenha}
-            onChange={(e) => setConfirmarSenha(e.target.value)}
-            required
-            placeholder="Repita sua senha"
-            style={estilos.input}
-          />
-        </label>
+          <div className="input-group">
+            <label className="input-label">Confirmar Senha</label>
+            <input
+              type="password"
+              className="input-field"
+              value={confirmarSenha}
+              onChange={(e) => setConfirmarSenha(e.target.value)}
+              required
+              placeholder="Repita sua senha"
+            />
+          </div>
 
-        {erro && <p style={estilos.erro}>{erro}</p>}
+          {erro && <div className="alert-error">{erro}</div>}
 
-        <button type="submit" disabled={carregando} style={estilos.botao}>
-          {carregando ? 'Cadastrando...' : 'Cadastrar e Entrar'}
-        </button>
-
-        <div style={estilos.rodape}>
-          <span>Já possui conta?</span>{' '}
-          <button type="button" onClick={onIrParaLogin} style={estilos.linkBotao}>
-            Faça login
+          <button
+            type="submit"
+            disabled={carregando}
+            className="btn btn-primary"
+            style={{ width: '100%', marginTop: '0.4rem' }}
+          >
+            {carregando ? (
+              <>
+                <span className="spinner" style={{ width: '16px', height: '16px', borderTopColor: '#fff' }} />
+                <span>Criando conta...</span>
+              </>
+            ) : (
+              'Cadastrar e Acessar'
+            )}
           </button>
-        </div>
-      </form>
+
+          <div style={estilos.footer}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+              Já possui conta cadastrada?
+            </span>{' '}
+            <button type="button" onClick={onIrParaLogin} style={estilos.linkButton}>
+              Fazer login
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 const estilos = {
-  container: {
+  pageWrapper: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#f5f3f0',
-    fontFamily: 'system-ui, sans-serif',
-    padding: '1.5rem',
+    padding: '1.5rem 1rem',
+    background: 'radial-gradient(circle at top, #FAF5F5 0%, #FFFFFF 100%)',
   },
   card: {
-    background: '#fff',
-    padding: '2rem',
-    borderRadius: '12px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
     width: '100%',
-    maxWidth: '360px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.9rem',
+    maxWidth: '400px',
+    background: '#FFFFFF',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '2.2rem 2rem',
+    boxShadow: 'var(--shadow-card)',
   },
-  titulo: { margin: 0, textAlign: 'center' as const, color: '#333', fontSize: '1.5rem' },
-  subtitulo: { margin: '-0.3rem 0 0.5rem', textAlign: 'center' as const, color: '#777', fontSize: '0.85rem' },
-  label: { display: 'flex', flexDirection: 'column' as const, gap: '0.2rem', fontSize: '0.85rem', color: '#444' },
-  input: { padding: '0.6rem', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.95rem' },
-  botao: {
-    marginTop: '0.5rem',
-    padding: '0.75rem',
-    borderRadius: '6px',
-    border: 'none',
-    background: '#8a6d5c',
-    color: '#fff',
-    fontSize: '1rem',
-    fontWeight: 'bold' as const,
-    cursor: 'pointer',
+  footer: {
+    textAlign: 'center' as const,
+    marginTop: '1.25rem',
+    paddingTop: '1rem',
+    borderTop: '1px solid var(--color-border-subtle)',
   },
-  erro: { color: '#c0392b', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 },
-  rodape: { textAlign: 'center' as const, fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' },
-  linkBotao: {
+  linkButton: {
     background: 'none',
     border: 'none',
-    color: '#8a6d5c',
-    fontWeight: 'bold' as const,
+    color: 'var(--color-primary)',
+    fontWeight: 600,
     cursor: 'pointer',
-    padding: 0,
+    fontSize: '0.85rem',
+    fontFamily: 'var(--font-family)',
     textDecoration: 'underline',
+    padding: '0 0.2rem',
   },
 };

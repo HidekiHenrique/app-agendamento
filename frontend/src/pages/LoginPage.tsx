@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserRole } from '../api/types';
+import { BrandHeader } from '../components/BrandHeader';
 
 export function LoginPage({ onIrParaCadastro }: { onIrParaCadastro: () => void }) {
   const { loginMaster, loginCliente } = useAuth();
@@ -29,18 +30,18 @@ export function LoginPage({ onIrParaCadastro }: { onIrParaCadastro: () => void }
   }
 
   return (
-    <div style={estilos.container}>
-      <form onSubmit={handleSubmit} style={estilos.card}>
-        <h1 style={estilos.titulo}>Agenda</h1>
+    <div style={estilos.pageWrapper}>
+      <div style={estilos.loginCard}>
+        <BrandHeader subtitle="Agendamentos Online" />
 
-        <div style={estilos.seletorPerfil}>
+        <div style={estilos.tabsContainer}>
           <button
             type="button"
             onClick={() => {
               setTipoLogin('cliente');
               setErro('');
             }}
-            style={estilos.abaPerfil(tipoLogin === 'cliente')}
+            style={estilos.tabButton(tipoLogin === 'cliente')}
           >
             Sou Cliente
           </button>
@@ -50,118 +51,125 @@ export function LoginPage({ onIrParaCadastro }: { onIrParaCadastro: () => void }
               setTipoLogin('master');
               setErro('');
             }}
-            style={estilos.abaPerfil(tipoLogin === 'master')}
+            style={estilos.tabButton(tipoLogin === 'master')}
           >
             Administradora
           </button>
         </div>
 
-        <label style={estilos.label}>
-          E-mail
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="seu@email.com"
-            style={estilos.input}
-          />
-        </label>
-
-        <label style={estilos.label}>
-          Senha
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            placeholder="Sua senha"
-            style={estilos.input}
-          />
-        </label>
-
-        {erro && <p style={estilos.erro}>{erro}</p>}
-
-        <button type="submit" disabled={carregando} style={estilos.botao}>
-          {carregando ? 'Entrando...' : 'Entrar'}
-        </button>
-
-        {tipoLogin === 'cliente' && (
-          <div style={estilos.rodape}>
-            <span>Não tem conta?</span>{' '}
-            <button type="button" onClick={onIrParaCadastro} style={estilos.linkBotao}>
-              Cadastre-se para agendar
-            </button>
+        <form onSubmit={handleSubmit} style={estilos.form}>
+          <div className="input-group">
+            <label className="input-label">E-mail</label>
+            <input
+              type="email"
+              className="input-field"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="seu@email.com"
+            />
           </div>
-        )}
-      </form>
+
+          <div className="input-group">
+            <label className="input-label">Senha</label>
+            <input
+              type="password"
+              className="input-field"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              placeholder="Digite sua senha"
+            />
+          </div>
+
+          {erro && <div className="alert-error">{erro}</div>}
+
+          <button type="submit" disabled={carregando} className="btn btn-primary" style={{ width: '100%', marginTop: '0.4rem' }}>
+            {carregando ? (
+              <>
+                <span className="spinner" style={{ width: '16px', height: '16px', borderTopColor: '#fff' }} />
+                <span>Entrando...</span>
+              </>
+            ) : (
+              'Entrar'
+            )}
+          </button>
+
+          {tipoLogin === 'cliente' && (
+            <div style={estilos.footer}>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                Primeira vez aqui?
+              </span>{' '}
+              <button type="button" onClick={onIrParaCadastro} style={estilos.linkButton}>
+                Criar minha conta
+              </button>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
 
 const estilos = {
-  container: {
+  pageWrapper: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#f5f3f0',
-    fontFamily: 'system-ui, sans-serif',
-    padding: '1.5rem',
+    padding: '1.5rem 1rem',
+    background: 'radial-gradient(circle at top, #FAF5F5 0%, #FFFFFF 100%)',
   },
-  card: {
-    background: '#fff',
-    padding: '2rem',
-    borderRadius: '12px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+  loginCard: {
     width: '100%',
-    maxWidth: '340px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '1rem',
+    maxWidth: '380px',
+    background: '#FFFFFF',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '2.2rem 2rem',
+    boxShadow: 'var(--shadow-card)',
   },
-  titulo: { margin: 0, textAlign: 'center' as const, color: '#333' },
-  seletorPerfil: {
+  tabsContainer: {
     display: 'flex',
-    background: '#f0edea',
-    borderRadius: '8px',
+    background: 'var(--color-surface)',
+    borderRadius: 'var(--radius-sm)',
     padding: '3px',
-    marginBottom: '0.2rem',
+    border: '1px solid var(--color-border)',
+    marginBottom: '1.4rem',
   },
-  abaPerfil: (ativa: boolean) => ({
+  tabButton: (ativo: boolean) => ({
     flex: 1,
-    padding: '0.5rem',
+    padding: '0.55rem 0.5rem',
     border: 'none',
-    borderRadius: '6px',
-    background: ativa ? '#8a6d5c' : 'transparent',
-    color: ativa ? '#fff' : '#666',
-    fontWeight: ativa ? ('bold' as const) : ('normal' as const),
+    borderRadius: 'calc(var(--radius-sm) - 2px)',
+    background: ativo ? '#FFFFFF' : 'transparent',
+    color: ativo ? 'var(--color-primary)' : 'var(--color-text-muted)',
+    fontWeight: ativo ? 600 : 400,
     fontSize: '0.85rem',
     cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'var(--transition)',
+    boxShadow: ativo ? 'var(--shadow-sm)' : 'none',
+    fontFamily: 'var(--font-family)',
   }),
-  label: { display: 'flex', flexDirection: 'column' as const, gap: '0.25rem', fontSize: '0.9rem', color: '#444' },
-  input: { padding: '0.6rem', borderRadius: '6px', border: '1px solid #ddd', fontSize: '1rem' },
-  botao: {
-    padding: '0.75rem',
-    borderRadius: '6px',
-    border: 'none',
-    background: '#8a6d5c',
-    color: '#fff',
-    fontSize: '1rem',
-    fontWeight: 'bold' as const,
-    cursor: 'pointer',
-    marginTop: '0.2rem',
+  form: {
+    display: 'flex',
+    flexDirection: 'column' as const,
   },
-  erro: { color: '#c0392b', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 },
-  rodape: { textAlign: 'center' as const, fontSize: '0.85rem', color: '#666', marginTop: '0.2rem' },
-  linkBotao: {
+  footer: {
+    textAlign: 'center' as const,
+    marginTop: '1.25rem',
+    paddingTop: '1rem',
+    borderTop: '1px solid var(--color-border-subtle)',
+  },
+  linkButton: {
     background: 'none',
     border: 'none',
-    color: '#8a6d5c',
-    fontWeight: 'bold' as const,
+    color: 'var(--color-primary)',
+    fontWeight: 600,
     cursor: 'pointer',
-    padding: 0,
+    fontSize: '0.85rem',
+    fontFamily: 'var(--font-family)',
     textDecoration: 'underline',
+    padding: '0 0.2rem',
   },
 };

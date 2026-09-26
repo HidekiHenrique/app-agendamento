@@ -7,6 +7,7 @@ import { ServicosPage } from './pages/ServicosPage';
 import { ClientesPage } from './pages/ClientesPage';
 import { ClienteAgendamentoPage } from './pages/ClienteAgendamentoPage';
 import { MeusAgendamentosPage } from './pages/MeusAgendamentosPage';
+import { BrandHeader } from './components/BrandHeader';
 
 type AbaMaster = 'agenda' | 'servicos' | 'clientes';
 type AbaCliente = 'agendar' | 'meus-agendamentos';
@@ -16,12 +17,12 @@ function AppMaster() {
   const { logout, usuario } = useAuth();
 
   return (
-    <div>
+    <div style={estilos.appLayout}>
       <header style={estilos.topBar}>
-        <span style={estilos.badgePerfil}>Modo Administradora</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ fontSize: '0.85rem', color: '#666' }}>{usuario?.email}</span>
-          <button onClick={logout} style={estilos.botaoSair}>
+        <BrandHeader compact subtitle="Painel da Administradora" />
+        <div style={estilos.topBarRight}>
+          <span style={estilos.userEmail}>{usuario?.email}</span>
+          <button onClick={logout} className="btn btn-secondary" style={estilos.botaoSair}>
             Sair
           </button>
         </div>
@@ -30,27 +31,29 @@ function AppMaster() {
       <nav style={estilos.nav}>
         <button
           onClick={() => setAba('agenda')}
-          style={estilos.abaBotao(aba === 'agenda')}
+          style={estilos.navPill(aba === 'agenda')}
         >
-          Agenda
+          Agenda Geral
         </button>
         <button
           onClick={() => setAba('servicos')}
-          style={estilos.abaBotao(aba === 'servicos')}
+          style={estilos.navPill(aba === 'servicos')}
         >
           Serviços
         </button>
         <button
           onClick={() => setAba('clientes')}
-          style={estilos.abaBotao(aba === 'clientes')}
+          style={estilos.navPill(aba === 'clientes')}
         >
           Clientes
         </button>
       </nav>
 
-      {aba === 'agenda' && <AgendaPage />}
-      {aba === 'servicos' && <ServicosPage />}
-      {aba === 'clientes' && <ClientesPage />}
+      <main className="container">
+        {aba === 'agenda' && <AgendaPage />}
+        {aba === 'servicos' && <ServicosPage />}
+        {aba === 'clientes' && <ClientesPage />}
+      </main>
     </div>
   );
 }
@@ -60,38 +63,41 @@ function AppCliente() {
   const { logout, usuario } = useAuth();
 
   return (
-    <div>
+    <div style={estilos.appLayout}>
       <header style={estilos.topBar}>
-        <div>
-          <span style={{ fontWeight: 'bold', color: '#444' }}>
-            Olá, {usuario?.nome || 'Cliente'}!
+        <BrandHeader compact subtitle="Estética & Bem-Estar" />
+        <div style={estilos.topBarRight}>
+          <span style={estilos.userName}>
+            Olá, <strong>{usuario?.nome?.split(' ')[0] || 'Cliente'}</strong>
           </span>
+          <button onClick={logout} className="btn btn-secondary" style={estilos.botaoSair}>
+            Sair
+          </button>
         </div>
-        <button onClick={logout} style={estilos.botaoSair}>
-          Sair
-        </button>
       </header>
 
       <nav style={estilos.nav}>
         <button
           onClick={() => setAba('agendar')}
-          style={estilos.abaBotao(aba === 'agendar')}
+          style={estilos.navPill(aba === 'agendar')}
         >
           Agendar Horário
         </button>
         <button
           onClick={() => setAba('meus-agendamentos')}
-          style={estilos.abaBotao(aba === 'meus-agendamentos')}
+          style={estilos.navPill(aba === 'meus-agendamentos')}
         >
           Meus Agendamentos
         </button>
       </nav>
 
-      {aba === 'agendar' ? (
-        <ClienteAgendamentoPage onAgendamentoSucesso={() => setAba('meus-agendamentos')} />
-      ) : (
-        <MeusAgendamentosPage onNovoAgendamento={() => setAba('agendar')} />
-      )}
+      <main className="container">
+        {aba === 'agendar' ? (
+          <ClienteAgendamentoPage onAgendamentoSucesso={() => setAba('meus-agendamentos')} />
+        ) : (
+          <MeusAgendamentosPage onNovoAgendamento={() => setAba('agendar')} />
+        )}
+      </main>
     </div>
   );
 }
@@ -119,49 +125,65 @@ function App() {
 }
 
 const estilos = {
+  appLayout: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    backgroundColor: 'var(--color-bg)',
+  },
   topBar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '0.8rem 1.5rem',
-    background: '#fff',
-    borderBottom: '1px solid #eaeaea',
-    fontFamily: 'system-ui, sans-serif',
+    padding: '0.85rem 1.25rem',
+    background: '#FFFFFF',
+    borderBottom: '1px solid var(--color-border)',
+    position: 'sticky' as const,
+    top: 0,
+    zIndex: 100,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
   },
-  badgePerfil: {
-    background: '#f5eee9',
-    color: '#8a6d5c',
+  topBarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+  },
+  userName: {
+    fontSize: '0.85rem',
+    color: 'var(--color-text-secondary)',
+  },
+  userEmail: {
     fontSize: '0.8rem',
-    fontWeight: 'bold' as const,
-    padding: '0.2rem 0.6rem',
-    borderRadius: '12px',
+    color: 'var(--color-text-muted)',
+    display: 'none',
+    '@media (min-width: 500px)': {
+      display: 'inline',
+    },
   },
   botaoSair: {
-    background: 'none',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    padding: '0.35rem 0.75rem',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    color: '#666',
+    padding: '0.4rem 0.8rem',
+    fontSize: '0.8rem',
   },
   nav: {
     display: 'flex',
     gap: '0.5rem',
     justifyContent: 'center',
-    padding: '1.2rem 0 0.5rem',
-    fontFamily: 'system-ui, sans-serif',
+    padding: '1rem 0.75rem 0.5rem',
+    borderBottom: '1px solid var(--color-border-subtle)',
+    background: '#FFFFFF',
   },
-  abaBotao: (ativa: boolean) => ({
+  navPill: (ativo: boolean) => ({
     border: 'none',
-    background: ativa ? '#8a6d5c' : '#eee',
-    color: ativa ? '#fff' : '#333',
-    padding: '0.5rem 1.2rem',
-    borderRadius: '20px',
+    background: ativo ? 'var(--color-primary)' : 'var(--color-surface)',
+    color: ativo ? '#FFFFFF' : 'var(--color-text-secondary)',
+    padding: '0.55rem 1.15rem',
+    borderRadius: 'var(--radius-full)',
     cursor: 'pointer',
-    fontSize: '0.9rem',
-    fontWeight: ativa ? ('bold' as const) : ('normal' as const),
-    transition: 'all 0.2s',
+    fontSize: '0.85rem',
+    fontWeight: ativo ? 600 : 500,
+    transition: 'var(--transition)',
+    boxShadow: ativo ? 'var(--shadow-primary)' : 'none',
+    fontFamily: 'var(--font-family)',
   }),
 };
 

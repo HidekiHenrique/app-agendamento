@@ -8,6 +8,7 @@ export function ClientesPage() {
   const [busca, setBusca] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [exibirFormNovo, setExibirFormNovo] = useState(false);
 
   useEffect(() => {
     carregar();
@@ -27,44 +28,84 @@ export function ClientesPage() {
   }
 
   return (
-    <div style={estilos.pagina}>
-      <h2 style={{ marginTop: 0, color: '#333' }}>Gerenciamento de Clientes</h2>
+    <div>
+      <div style={estilos.topHeader}>
+        <div>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 500, margin: 0 }}>Gestão de Clientes</h2>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+            Base de clientes cadastradas e acesso online
+          </p>
+        </div>
 
-      <NovoClienteForm onCriado={carregar} />
+        <button
+          onClick={() => setExibirFormNovo((v) => !v)}
+          className="btn btn-primary"
+          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+        >
+          {exibirFormNovo ? 'Fechar' : '+ Cadastrar Cliente'}
+        </button>
+      </div>
 
-      <div style={estilos.buscaContainer}>
+      {exibirFormNovo && (
+        <NovoClienteForm
+          onCriado={() => {
+            setExibirFormNovo(false);
+            carregar();
+          }}
+          onCancelar={() => setExibirFormNovo(false)}
+        />
+      )}
+
+      <div style={estilos.buscaWrapper}>
         <input
           type="text"
-          placeholder="Buscar cliente por nome..."
+          placeholder="🔍 Buscar cliente por nome..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          style={estilos.inputBusca}
+          className="input-field"
+          style={{ background: '#FFFFFF' }}
         />
       </div>
 
-      {erro && <p style={estilos.erroMsg}>{erro}</p>}
-      {carregando && <p style={{ color: '#777' }}>Carregando clientes...</p>}
+      {erro && <div className="alert-error">{erro}</div>}
 
-      <ul style={estilos.lista}>
-        {clientes.length === 0 && !carregando && (
-          <p style={{ color: '#888' }}>Nenhum cliente encontrado.</p>
+      {carregando && (
+        <div style={estilos.loadingBox}>
+          <span className="spinner" />
+          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Carregando clientes...</span>
+        </div>
+      )}
+
+      <div style={estilos.list}>
+        {!carregando && clientes.length === 0 && (
+          <div style={estilos.emptyBox}>
+            <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+              Nenhuma cliente encontrada.
+            </p>
+          </div>
         )}
+
         {clientes.map((c) => (
           <ClienteItem key={c.id} cliente={c} onAtualizado={carregar} />
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
 
-function NovoClienteForm({ onCriado }: { onCriado: () => void }) {
+function NovoClienteForm({
+  onCriado,
+  onCancelar,
+}: {
+  onCriado: () => void;
+  onCancelar: () => void;
+}) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
-  const [aberto, setAberto] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -77,11 +118,6 @@ function NovoClienteForm({ onCriado }: { onCriado: () => void }) {
         email: email.trim() || undefined,
         observacoes: observacoes.trim() || undefined,
       });
-      setNome('');
-      setTelefone('');
-      setEmail('');
-      setObservacoes('');
-      setAberto(false);
       onCriado();
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Erro ao cadastrar cliente.');
@@ -90,57 +126,67 @@ function NovoClienteForm({ onCriado }: { onCriado: () => void }) {
     }
   }
 
-  if (!aberto) {
-    return (
-      <div style={{ marginBottom: '1.2rem' }}>
-        <button onClick={() => setAberto(true)} style={estilos.botaoNovoCliente}>
-          + Novo Cliente Manual
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} style={estilos.formNovo}>
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <strong style={{ fontSize: '0.95rem', color: '#444' }}>Cadastrar Cliente</strong>
-        <button type="button" onClick={() => setAberto(false)} style={estilos.botaoFechar}>
-          Fechar ✕
-        </button>
+    <form onSubmit={handleSubmit} className="card" style={estilos.boxFormulario}>
+      <div style={estilos.boxHeader}>
+        <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-primary)' }}>
+          Cadastrar Cliente Manualmente
+        </h4>
+        <button type="button" onClick={onCancelar} style={estilos.btnFechar}>✕</button>
       </div>
 
-      <input
-        placeholder="Nome do cliente"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        required
-        style={{ flex: '1 1 200px', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
-      />
-      <input
-        placeholder="Telefone / WhatsApp"
-        value={telefone}
-        onChange={(e) => setTelefone(e.target.value)}
-        style={{ flex: '1 1 140px', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
-      />
-      <input
-        type="email"
-        placeholder="E-mail (opcional)"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{ flex: '1 1 200px', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
-      />
-      <input
-        placeholder="Observações (opcional)"
-        value={observacoes}
-        onChange={(e) => setObservacoes(e.target.value)}
-        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
-      />
+      <div style={estilos.formLinha}>
+        <div className="input-group" style={{ flex: '2 1 200px', margin: 0 }}>
+          <label className="input-label">Nome Completo</label>
+          <input
+            placeholder="Nome da cliente"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            required
+            className="input-field"
+          />
+        </div>
 
-      <button type="submit" disabled={salvando} style={estilos.botaoSalvar}>
-        {salvando ? 'Salvando...' : 'Salvar Cliente'}
-      </button>
+        <div className="input-group" style={{ flex: '1 1 140px', margin: 0 }}>
+          <label className="input-label">Telefone / WhatsApp</label>
+          <input
+            placeholder="(11) 99999-9999"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
+            className="input-field"
+          />
+        </div>
 
-      {erro && <p style={{ color: '#c0392b', fontSize: '0.85rem', width: '100%', margin: 0 }}>{erro}</p>}
+        <div className="input-group" style={{ flex: '2 1 200px', margin: 0 }}>
+          <label className="input-label">E-mail (opcional)</label>
+          <input
+            type="email"
+            placeholder="cliente@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input-field"
+          />
+        </div>
+      </div>
+
+      <div className="input-group" style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+        <label className="input-label">Observações Internas (opcional)</label>
+        <input
+          placeholder="Ex: Prefere atendimento à tarde, pele sensível, etc."
+          value={observacoes}
+          onChange={(e) => setObservacoes(e.target.value)}
+          className="input-field"
+        />
+      </div>
+
+      {erro && <div className="alert-error" style={{ margin: '0.75rem 0 0' }}>{erro}</div>}
+
+      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <button type="button" onClick={onCancelar} className="btn btn-secondary">Cancelar</button>
+        <button type="submit" disabled={salvando} className="btn btn-primary">
+          {salvando ? 'Salvando...' : 'Salvar Cadastro'}
+        </button>
+      </div>
     </form>
   );
 }
@@ -167,214 +213,194 @@ function ClienteItem({ cliente, onAtualizado }: { cliente: Cliente; onAtualizado
         email: email.trim(),
         senha,
       });
-      alert('Login de acesso online ativado com sucesso para este cliente!');
+      alert('Acesso online vinculado com sucesso para esta cliente!');
       setDefinindoCredenciais(false);
       setSenha('');
       onAtualizado();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Erro ao definir login.');
+      setErro(err instanceof Error ? err.message : 'Erro ao vincular credenciais.');
     } finally {
       setSalvando(false);
     }
   }
 
   return (
-    <li style={estilos.item}>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <strong>{cliente.nome}</strong>
-          {cliente.possuiLogin ? (
-            <span style={estilos.badgeLoginAtivo}>✓ Acesso Online Ativo</span>
-          ) : (
-            <span style={estilos.badgeSemLogin}>Sem Login Online</span>
+    <div className="card" style={estilos.clienteCard}>
+      <div style={estilos.clienteCardTop}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <h4 style={estilos.clienteNome}>{cliente.nome}</h4>
+            {cliente.possuiLogin ? (
+              <span className="badge badge-agendado" style={{ fontSize: '0.7rem' }}>
+                ✓ Login Ativo
+              </span>
+            ) : (
+              <span className="badge badge-cancelado" style={{ fontSize: '0.7rem' }}>
+                Sem Login Online
+              </span>
+            )}
+          </div>
+
+          <div style={estilos.clienteMeta}>
+            {cliente.telefone && <span>WhatsApp: {cliente.telefone} · </span>}
+            {cliente.email ? <span>{cliente.email}</span> : <em style={{ color: 'var(--color-text-light)' }}>Sem e-mail</em>}
+          </div>
+
+          {cliente.observacoes && (
+            <p style={estilos.clienteObs}>Obs: {cliente.observacoes}</p>
           )}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.2rem' }}>
-          {cliente.telefone && <span>Tel: {cliente.telefone} · </span>}
-          {cliente.email ? <span>Email: {cliente.email}</span> : <em>Sem e-mail cadastrado</em>}
-        </div>
-        {cliente.observacoes && (
-          <div style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', marginTop: '0.2rem' }}>
-            Obs: {cliente.observacoes}
-          </div>
-        )}
-      </div>
 
-      <div>
-        <button
-          onClick={() => {
-            setEmail(cliente.email || '');
-            setDefinindoCredenciais((v) => !v);
-          }}
-          style={estilos.botaoCredenciais}
-        >
-          {cliente.possuiLogin ? 'Alterar Acesso / Senha' : '🔑 Ativar Login do Cliente'}
-        </button>
+        <div>
+          <button
+            onClick={() => {
+              setEmail(cliente.email || '');
+              setDefinindoCredenciais((v) => !v);
+            }}
+            className="btn btn-outline"
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+          >
+            {cliente.possuiLogin ? 'Alterar Acesso' : '🔑 Ativar Login da Cliente'}
+          </button>
+        </div>
       </div>
 
       {definindoCredenciais && (
-        <form onSubmit={handleSalvarCredenciais} style={estilos.formCredenciais}>
-          <div style={{ width: '100%', fontSize: '0.85rem', fontWeight: 'bold', color: '#555' }}>
-            Definir e-mail e senha para {cliente.nome} poder agendar online:
+        <form onSubmit={handleSalvarCredenciais} style={estilos.credenciaisBox}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+            Definir e-mail e senha de acesso para {cliente.nome}:
           </div>
-          <input
-            type="email"
-            placeholder="E-mail do cliente"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={estilos.inputCred}
-          />
-          <input
-            type="password"
-            placeholder="Senha inicial (mínimo 6 chars)"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            style={estilos.inputCred}
-          />
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
-            <button type="submit" disabled={salvando} style={estilos.botaoSalvarCred}>
-              {salvando ? 'Salvando...' : 'Salvar e Ativar'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDefinindoCredenciais(false);
-                setErro('');
-              }}
-              style={estilos.botaoCancelarCred}
-            >
-              Cancelar
-            </button>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' as const, marginTop: '0.5rem' }}>
+            <input
+              type="email"
+              placeholder="E-mail da cliente"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="input-field"
+              style={{ flex: '1 1 180px', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+            />
+            <input
+              type="password"
+              placeholder="Senha inicial (mín. 6 chars)"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              className="input-field"
+              style={{ flex: '1 1 180px', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+            />
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <button type="submit" disabled={salvando} className="btn btn-primary" style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem' }}>
+                {salvando ? 'Salvando...' : 'Salvar e Ativar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDefinindoCredenciais(false);
+                  setErro('');
+                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.45rem 0.7rem', fontSize: '0.8rem' }}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
-          {erro && <p style={{ color: '#c0392b', fontSize: '0.8rem', width: '100%', margin: 0 }}>{erro}</p>}
+          {erro && <p style={{ color: '#c0392b', fontSize: '0.8rem', margin: '0.5rem 0 0' }}>{erro}</p>}
         </form>
       )}
-    </li>
+    </div>
   );
 }
 
 const estilos = {
-  pagina: { maxWidth: '700px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, sans-serif' },
-  buscaContainer: { marginBottom: '1rem' },
-  inputBusca: {
-    width: '100%',
-    padding: '0.6rem',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
-    fontSize: '0.95rem',
-    boxSizing: 'border-box' as const,
-  },
-  botaoNovoCliente: {
-    background: '#8a6d5c',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    fontWeight: 'bold' as const,
-  },
-  formNovo: {
+  topHeader: {
     display: 'flex',
-    gap: '0.6rem',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1rem',
+    borderBottom: '1px solid var(--color-border-subtle)',
+    paddingBottom: '0.75rem',
     flexWrap: 'wrap' as const,
-    background: '#f5f3f0',
-    padding: '1rem',
-    borderRadius: '8px',
-    marginBottom: '1.2rem',
+    gap: '0.75rem',
   },
-  botaoFechar: {
+  buscaWrapper: {
+    marginBottom: '1.25rem',
+  },
+  boxFormulario: {
+    marginBottom: '1.5rem',
+    background: '#FFFFFF',
+    border: '1.5px solid var(--color-primary-border)',
+  },
+  boxHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1rem',
+  },
+  btnFechar: {
     background: 'none',
     border: 'none',
-    color: '#888',
+    color: 'var(--color-text-muted)',
     cursor: 'pointer',
-    fontSize: '0.85rem',
+    fontSize: '0.9rem',
   },
-  botaoSalvar: {
-    background: '#8a6d5c',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    fontWeight: 'bold' as const,
+  formLinha: {
+    display: 'flex',
+    gap: '0.75rem',
+    flexWrap: 'wrap' as const,
   },
-  lista: { listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column' as const, gap: '0.6rem' },
-  item: {
+  list: {
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '0.6rem',
-    padding: '0.9rem 1rem',
-    borderRadius: '8px',
-    border: '1px solid #eee',
-    background: '#fff',
+    gap: '0.75rem',
   },
-  badgeLoginAtivo: {
-    fontSize: '0.75rem',
-    background: '#e8f5e9',
-    color: '#2e7d32',
-    padding: '0.15rem 0.5rem',
-    borderRadius: '10px',
-    fontWeight: 'bold' as const,
+  clienteCard: {
+    padding: '1rem 1.25rem',
   },
-  badgeSemLogin: {
-    fontSize: '0.75rem',
-    background: '#f0f0f0',
-    color: '#777',
-    padding: '0.15rem 0.5rem',
-    borderRadius: '10px',
-  },
-  botaoCredenciais: {
-    background: '#fff',
-    border: '1px solid #8a6d5c',
-    color: '#8a6d5c',
-    borderRadius: '6px',
-    padding: '0.35rem 0.7rem',
-    cursor: 'pointer',
-    fontSize: '0.82rem',
-    fontWeight: 'bold' as const,
-  },
-  formCredenciais: {
+  clienteCardTop: {
     display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '1rem',
     flexWrap: 'wrap' as const,
-    gap: '0.5rem',
-    background: '#fdfbf7',
-    border: '1px solid #eedecf',
-    padding: '0.8rem',
-    borderRadius: '6px',
-    marginTop: '0.4rem',
   },
-  inputCred: {
-    padding: '0.4rem 0.6rem',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    fontSize: '0.85rem',
-    flex: '1 1 180px',
+  clienteNome: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: 'var(--color-text-main)',
+    margin: 0,
   },
-  botaoSalvarCred: {
-    background: '#2e7d32',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '0.4rem 0.8rem',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    fontWeight: 'bold' as const,
+  clienteMeta: {
+    fontSize: '0.82rem',
+    color: 'var(--color-text-muted)',
+    marginTop: '0.25rem',
   },
-  botaoCancelarCred: {
-    background: '#eee',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '0.4rem 0.6rem',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
+  clienteObs: {
+    fontSize: '0.8rem',
+    color: 'var(--color-text-muted)',
+    fontStyle: 'italic' as const,
+    margin: '0.35rem 0 0',
   },
-  erroMsg: {
-    background: '#fdf0f0',
-    color: '#c0392b',
-    padding: '0.7rem',
-    borderRadius: '6px',
-    border: '1px solid #fadbd8',
+  credenciaisBox: {
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '0.85rem',
+    marginTop: '0.85rem',
+  },
+  loadingBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    padding: '1.5rem',
+    justifyContent: 'center',
+  },
+  emptyBox: {
+    padding: '3rem 1.5rem',
+    textAlign: 'center' as const,
+    background: 'var(--color-surface)',
+    border: '1px dashed var(--color-border)',
+    borderRadius: 'var(--radius-md)',
   },
 };
