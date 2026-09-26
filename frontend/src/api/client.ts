@@ -22,7 +22,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (response.status === 401) {
     // Token expirou ou é inválido - desloga e manda de volta pro login.
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    localStorage.removeItem('usuario');
+    if (window.location.pathname !== '/') {
+      window.location.href = '/';
+    } else {
+      window.location.reload();
+    }
     throw new Error('Sessão expirada.');
   }
 

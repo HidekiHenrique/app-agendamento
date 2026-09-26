@@ -1,36 +1,78 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { authApi } from '../api/resources';
+import type { UserRole, Usuario } from '../api/types';
 
 interface AuthContextType {
   logado: boolean;
-  login: (email: string, senha: string) => Promise<void>;
+  usuario: Usuario | null;
+  role: UserRole | null;
+  loginMaster: (email: string, senha: string) => Promise<void>;
+  loginCliente: (email: string, senha: string) => Promise<void>;
+  cadastrarCliente: (dados: { nome: string; email: string; senha: string; telefone?: string }) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-/**
- * Paralelo com PHP: isso substitui a checagem de $_SESSION['usuario_id']
- * que você faria em cada página. Aqui, qualquer componente pode chamar
- * useAuth() pra saber se está logado, em vez de checar sessão manualmente.
- */
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [logado, setLogado] = useState(() => !!localStorage.getItem('token'));
+function carregarUsuarioSalvo(): Usuario | null {
+  const salvo = localStorage.getItem('usuario');
+  if (!salvo) return null;
+  try {
+    return JSON.parse(salvo);
+  } catch {
+    return null;
+  }
+}
 
-  async function login(email: string, senha: string) {
-    const { access_token } = await authApi.login(email, senha);
-    localStorage.setItem('token', access_token);
-    setLogado(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [usuario, setUsuario] = useState<Usuario | null>(() => carregarUsuarioSalvo());
+
+  function salvarSessao(novoToken: string, novoUsuario: Usuario) {
+    localStorage.setItem('token', novoToken);
+    localStorage.setItem('usuario', JSON.stringify(novoUsuario));
+    setToken(novoToken);
+    setUsuario(novoUsuario);
+  }
+
+  async function loginMaster(email: string, senha: string) {
+    const res = await authApi.loginMaster(email, senha);
+    salvarSessao(res.access_token, res.user);
+  }
+
+  async function loginCliente(email: string, senha: string) {
+    const res = await authApi.loginCliente(email, senha);
+    salvarSessao(res.access_token, res.user);
+  }
+
+  async function cadastrarCliente(dados: { nome: string; email: string; senha: string; telefone?: string }) {
+    const res = await authApi.cadastrarCliente(dados);
+    salvarSessao(res.access_token, res.user);
   }
 
   function logout() {
     localStorage.removeItem('token');
-    setLogado(false);
+    localStorage.removeItem('usuario');
+    setToken(null);
+    setUsuario(null);
   }
 
+  const logado = Boolean(token && usuario);
+  const role = usuario?.role || null;
+
   return (
-    <AuthContext.Provider value={{ logado, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        logado,
+        usuario,
+        role,
+        loginMaster,
+        loginCliente,
+        cadastrarCliente,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

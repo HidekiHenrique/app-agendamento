@@ -22,13 +22,16 @@ export function ServicosPage() {
 
   return (
     <div style={estilos.pagina}>
-      <h2 style={{ marginTop: 0 }}>Serviços</h2>
+      <h2 style={{ marginTop: 0, color: '#333' }}>Gerenciamento de Serviços</h2>
 
       <NovoServicoForm onCriado={carregar} />
 
-      {carregando && <p>Carregando...</p>}
+      {carregando && <p style={{ color: '#777' }}>Carregando serviços...</p>}
 
       <ul style={estilos.lista}>
+        {servicos.length === 0 && !carregando && (
+          <p style={{ color: '#888' }}>Nenhum serviço ativo cadastrado.</p>
+        )}
         {servicos.map((s) => (
           <ServicoItem key={s.id} servico={s} onAtualizado={carregar} />
         ))}
@@ -130,28 +133,45 @@ function ServicoItem({
     }
   }
 
+  async function desativar() {
+    if (!confirm(`Deseja realmente desativar o serviço "${servico.nome}"?`)) {
+      return;
+    }
+    try {
+      await servicosApi.desativar(servico.id);
+      onAtualizado();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao desativar serviço.');
+    }
+  }
+
   if (!editando) {
     return (
       <li style={estilos.item}>
         <span>
-          <strong>{servico.nome}</strong> — {servico.duracaoMin}min · R${servico.preco.toFixed(2)}
+          <strong>{servico.nome}</strong> — {servico.duracaoMin}min · R$ {servico.preco.toFixed(2)}
         </span>
-        <button onClick={() => setEditando(true)} style={estilos.botaoEditar}>
-          Editar
-        </button>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <button onClick={() => setEditando(true)} style={estilos.botaoEditar}>
+            Editar
+          </button>
+          <button onClick={desativar} style={estilos.botaoDesativar}>
+            Desativar
+          </button>
+        </div>
       </li>
     );
   }
 
   return (
     <li style={estilos.item}>
-      <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <strong>{servico.nome}</strong>
         <input
           type="number"
           value={duracaoMin}
           onChange={(e) => setDuracaoMin(e.target.value)}
-          style={{ width: '70px' }}
+          style={{ width: '70px', padding: '0.3rem' }}
         />
         min · R$
         <input
@@ -159,7 +179,7 @@ function ServicoItem({
           step="0.01"
           value={preco}
           onChange={(e) => setPreco(e.target.value)}
-          style={{ width: '80px' }}
+          style={{ width: '80px', padding: '0.3rem' }}
         />
       </span>
       <span style={{ display: 'flex', gap: '0.4rem' }}>
@@ -170,13 +190,13 @@ function ServicoItem({
           Cancelar
         </button>
       </span>
-      {erro && <p style={{ color: '#c0392b', fontSize: '0.8rem' }}>{erro}</p>}
+      {erro && <p style={{ color: '#c0392b', fontSize: '0.8rem', width: '100%' }}>{erro}</p>}
     </li>
   );
 }
 
 const estilos = {
-  pagina: { maxWidth: '600px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, sans-serif' },
+  pagina: { maxWidth: '650px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, sans-serif' },
   formNovo: {
     display: 'flex',
     gap: '0.5rem',
@@ -191,9 +211,10 @@ const estilos = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '0.7rem',
+    padding: '0.8rem 1rem',
     borderRadius: '8px',
     border: '1px solid #eee',
+    background: '#fff',
   },
   botao: {
     background: '#8a6d5c',
@@ -202,10 +223,20 @@ const estilos = {
     borderRadius: '6px',
     padding: '0.4rem 0.8rem',
     cursor: 'pointer',
+    fontWeight: 'bold' as const,
   },
   botaoEditar: {
     background: 'none',
     border: '1px solid #ddd',
+    borderRadius: '6px',
+    padding: '0.35rem 0.7rem',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+  },
+  botaoDesativar: {
+    background: '#fff',
+    color: '#c0392b',
+    border: '1px solid #e74c3c',
     borderRadius: '6px',
     padding: '0.35rem 0.7rem',
     cursor: 'pointer',

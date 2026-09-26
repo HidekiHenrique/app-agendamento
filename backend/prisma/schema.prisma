@@ -18,6 +18,8 @@ datasource db {
 model Cliente {
   id           Int           @id @default(autoincrement())
   nome         String
+  email        String?       @unique
+  senhaHash    String?
   telefone     String?
   observacoes  String?
   criadoEm     DateTime      @default(now())
@@ -55,4 +57,12 @@ model Agendamento {
   status         StatusAgendamento @default(agendado)
   observacoes    String?
   criadoEm       DateTime          @default(now())
+}
+
+model BloqueioAgenda {
+  id       Int      @id @default(autoincrement())
+  inicio   DateTime
+  fim      DateTime
+  motivo   String?
+  criadoEm DateTime @default(now())
 }

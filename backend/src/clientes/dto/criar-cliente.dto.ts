@@ -11,5 +11,9 @@ export class CriarClienteDto {
 
   @IsOptional()
   @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
   observacoes?: string;
 }
